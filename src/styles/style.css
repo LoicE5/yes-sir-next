@@ -15,7 +15,7 @@ button,
     font-family: Oxanium, sans-serif;
 }
 
-body, #root, main {
+body, #root, main, #__next {
     margin: 0px;
     height: 100vh;
     display: flex;
@@ -235,4 +235,11 @@ input::-webkit-inner-spin-button {
 /* Firefox */
 input[type=number] {
     -moz-appearance: textfield;
+}
+
+.loader {
+    position: fixed;
+    top: 50vh;
+    left: 50vw;
+    transform: translate(-50%,-50%);
 }
