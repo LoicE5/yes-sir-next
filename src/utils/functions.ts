@@ -1,4 +1,5 @@
-import { Dispatch, SetStateAction } from "react";
+import { NextApiRequest, NextApiResponse } from "next";
+import { Dispatch, SetStateAction } from "react"
 
 export function redirect(url:string):void {
     window.location.href = url;
