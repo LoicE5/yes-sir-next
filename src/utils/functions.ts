@@ -1,5 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { Dispatch, SetStateAction } from "react"
+import { IpQualityScoreResponse } from "./interfaces";
+import * as crypto from 'crypto';
 
 export function redirect(url:string):void {
     window.location.href = url;
@@ -36,4 +38,32 @@ export function calculateTimer(endDate: number): string {
         return `The countdown for this class is over since ${-timer.hours - 1} hours, ${-timer.minutes - 1} minutes and ${-timer.seconds - 1} seconds`
 
     return `${timer.hours}:${timer.minutes}:${timer.seconds}`
+}
+
+export async function fetchIpQualityInfo(ip: string): Promise<IpQualityScoreResponse|false> {
+    const qualityScoreUrl = `https://ipqualityscore.com/api/json/ip/${process.env.IP_QUALITY_SCORE_API_KEY}/${ip}`
+    const result = await fetch(qualityScoreUrl)
+    if (!result.ok)
+        return false
+    const data = await result.json() as IpQualityScoreResponse
+    return data
+}
+
+export function isIpv6(ip: string): boolean{
+    return ip.includes(':')
+}
+
+export function casualHash(input: string): string {
+    const hash = crypto.createHash('ripemd160');
+    hash.update(input);
+    return hash.digest('hex');
+}
+
+export function isVpnFromIpInfo(ipQualityInfo: IpQualityScoreResponse) {
+    return ipQualityInfo.proxy ||
+        ipQualityInfo.vpn ||
+        ipQualityInfo.tor ||
+        ipQualityInfo.active_vpn ||
+        ipQualityInfo.active_tor ||
+        ipQualityInfo.bot_status
 }

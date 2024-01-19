@@ -21,3 +21,5 @@ db
     .sync()
     .then(() => console.log('Db sync successful'))
     .catch(err => console.error(`The database did not sync correctly :`, err))
+
+export default db
