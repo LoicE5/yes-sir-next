@@ -1,5 +1,5 @@
-import { fetchIpQualityInfo, isVpnFromIpInfo } from "@/utils/functions"
-import { IpQualityScoreResponse } from "@/utils/interfaces"
+import { fetchIpQualityInfo, isVpnFromIpInfo, isIpv6 } from "@/utils/functions"
+import { BaseResponse, IpQualityScoreResponse } from "@/utils/interfaces"
 import { NextApiRequest, NextApiResponse } from "next"
 import validator from "validator"
 
@@ -16,14 +16,14 @@ interface Response {
     details: IpQualityScoreResponse
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse<any>): Promise<void> {
+export default async function handler(req: NextApiRequest, res: NextApiResponse<Response|BaseResponse>): Promise<void> {
 
     if (!['GET', 'HEAD'].includes(req.method as string))
         return res.status(405).json({message: `The method ${req.method} is not allowed.`})
 
     const {ip} = req.query as Query
     const client_ip = ip || req.socket.remoteAddress
-    const clean_ip = validator.escape(client_ip as string)        
+    const clean_ip = validator.escape(client_ip as string)
 
     const data = await fetchIpQualityInfo(clean_ip)
 
@@ -36,8 +36,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         is_vpn: isVpnFromIpInfo(data),
         details: data
     } as Response)
-}
-
-function isIpv6(clean_ip: string): boolean {
-    throw new Error("Function not implemented.")
 }

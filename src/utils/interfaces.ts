@@ -26,3 +26,7 @@ export interface IpQualityScoreResponse {
     longitude: number,
     request_id: string
 }
+
+export interface BaseResponse {
+    message?:string
+}

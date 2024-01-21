@@ -1,7 +1,7 @@
 import Attendances from "@/db/models/attendances.model"
 import Codes from "@/db/models/codes.model"
 import { casualHash, fetchIpQualityInfo, isIpv6, isVpnFromIpInfo } from "@/utils/functions"
-import { IpQualityScoreResponse } from "@/utils/interfaces"
+import { BaseResponse, IpQualityScoreResponse } from "@/utils/interfaces"
 import { NextApiRequest, NextApiResponse } from "next"
 import validator from "validator"
 
@@ -29,16 +29,17 @@ interface DbCodesModel {
     js_expiry: number
 }
 
-async function isIpAlreadyRegistered(ip:string, code:number):Promise<boolean>{
-    return !!await Attendances.findAll({
+async function isIpAlreadyRegistered(ip: string, code: number): Promise<boolean>{
+    const result = await Attendances.findAll({
         where: {
             ip: ip,
             code: code
         }
     })
+    return result.length > 0
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse<any>): Promise<void> {
+export default async function handler(req: NextApiRequest, res: NextApiResponse<Response|BaseResponse>): Promise<void> {
 
     if ('POST' !== req.method)
         return res.status(405).json({ message: `The method ${req.method} is not allowed.` })
@@ -70,14 +71,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                 is_already_registered: false,
                 js_expiry: 0
             } as Response)
-    
+            
         const ip = req.socket.remoteAddress as string
         const ipInfo = await fetchIpQualityInfo(ip) as IpQualityScoreResponse
-        const _isIpAlreadyRegistered = await isIpAlreadyRegistered(ip, existingCode as unknown as number)
+        const _isIpAlreadyRegistered = await isIpAlreadyRegistered(ip, existingCode.code)
         const _isIpv6 = isIpv6(ip)
         const _isVpn = isVpnFromIpInfo(ipInfo)
     
-        if ((_isIpv6 && _isIpAlreadyRegistered) || (Date.now() > existingCode.js_expiry))
+        if (
+            (_isIpv6 && _isIpAlreadyRegistered)
+            || (
+                existingCode.js_expiry > 0 && 
+                Date.now() > existingCode.js_expiry
+            )
+        )
             return res.status(403).json({
                 empty: false,
                 denied: true,
@@ -95,7 +102,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
             ip: ip,
             is_ipv6: _isIpv6,
             is_vpn: _isVpn,
-            is_already_registered: _isIpAlreadyRegistered,
+            is_already_registered: _isIpAlreadyRegistered
         })
 
         res.status(201).json({
@@ -110,6 +117,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         } as Response)
 
     } catch (error) {
-        res.status(500).json({message: 'There have been an error processing your request.'})
+        res.status(500).json({ message: 'There have been an error processing your request.' })
     }
 }

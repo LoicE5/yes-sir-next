@@ -67,3 +67,7 @@ export function isVpnFromIpInfo(ipQualityInfo: IpQualityScoreResponse) {
         ipQualityInfo.active_tor ||
         ipQualityInfo.bot_status
 }
+
+export function randomInt(min: number, max: number): number {
+    return Math.floor((Math.random() * (max + 1 - min)) + min)
+}
