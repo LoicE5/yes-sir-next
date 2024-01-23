@@ -2,7 +2,7 @@ import { randomInt } from "@/utils/functions";
 import { BaseResponse } from "@/utils/interfaces";
 import { NextApiRequest, NextApiResponse } from "next";
 import validator from "validator";
-import supabase from "@/db/supabase";
+import {supabaseApi} from "@/db/supabase";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 interface Query {
@@ -16,7 +16,7 @@ interface Response {
 }
 
 async function checkIfCodeAlreadyExists(code: number): Promise<boolean> {
-    return (await supabase.from('codes').select('*').in('code', [code])).data!.length > 0
+    return (await supabaseApi.from('codes').select('*').in('code', [code])).data!.length > 0
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Response|BaseResponse>): Promise<void> {
@@ -45,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
             existingCode = await checkIfCodeAlreadyExists(code)
         } while(existingCode)
 
-        const {data, error} = await supabase.from('codes').insert([{
+        const {data, error} = await supabaseApi.from('codes').insert([{
             code: code,
             class_name: cleanClassName,
             js_time: cleanJsTime,

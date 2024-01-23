@@ -1,10 +1,14 @@
-import Link from "next/link";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { sessionStorage } from "@/utils/storage";
-import { onlyInt, checkMinMax, calculateTimer } from "@/utils/functions";
+import Link from "next/link"
+import { useEffect, useRef, useState } from "react"
+import { sessionStorage } from "@/utils/storage"
+import { onlyInt, checkMinMax, calculateTimer } from "@/utils/functions"
+import TCs from "@/components/TCs"
 
-export default function teacher() {
+interface GetCodeResponse {
+    code: number
+}
 
+export default function Teacher() {
     const classroomNameProps = {
         minLength: 1,
         maxLength: 50
@@ -14,93 +18,97 @@ export default function teacher() {
         max: 180
     }
 
-    const [classroomName, setClassroomName] = useState('')
+    const [classroomName, setClassroomName] = useState("")
     const [timeGiven, setTimeGiven] = useState(5)
     const [classroomCode, setClassroomCode] = useState(-1)
-    const [timer, setTimer] = useState('')
+    const [timer, setTimer] = useState("")
     const [codeButtonText, setCodeButtonText] = useState('Generate code')
-    const [disabledButton, setDisabledButton] = useState(false)
-    let oldCodeInterval: NodeJS.Timeout | null = null
+    const [disabledButton, setDisabledButton] = useState(false)
+
+    const oldCodeIntervalRef = useRef<number | NodeJS.Timeout>()
 
     function replaceSpacesNumbers(event: KeyboardEvent): void {
-        // https://stackoverflow.com/questions/19508183/how-to-force-input-to-only-allow-alpha-letters
-
-        let key = event.keyCode;
-        if (!((key >= 65 && key <= 90) || key == 8)) {
-            event.preventDefault();
+        let key = event.keyCode
+        if (!((key >= 65 && key <= 90) || key === 8)) {
+            event.preventDefault()
         }
     }
 
-    function isValidString(str: string, minLength: number, maxLength: number): boolean {
-        // Check if the given string does not contain spaces, isn't empty, null, undefined, and fits between min length and max-length, and doesn't contains special characters
-
+    function isValidString(
+        str: string,
+        minLength: number,
+        maxLength: number
+    ): boolean {
         if (!str) return false
 
-        const specialCharacters = [' ', '&', '?']
-        if (specialCharacters.some(char => str.includes(char))) return false
+        const specialCharacters = [" ", "&", "?"]
+        if (specialCharacters.some((char) => str.includes(char))) return false
 
-        if (minLength! && Number.isInteger(minLength!) && str.length < minLength!) return false
+        if (minLength && Number.isInteger(minLength) && str.length < minLength)
+            return false
 
-        if (maxLength! && Number.isInteger(maxLength!) && str.length > maxLength!) return false
+        if (maxLength && Number.isInteger(maxLength) && str.length > maxLength)
+            return false
 
         return true
     }
 
     async function getCode(): Promise<void> {
-
-        // If the classroom-name is not valid, we throw an error and stop the process
         if (!isValidString(classroomName, classroomNameProps.minLength, classroomNameProps.maxLength))
             return console.error(`The given classroom name is not valid. String is : ${classroomName}.`)
 
-        const date = new Date();
+        const date = new Date()
         const currentDate = date.getTime()
-
-        // Gestion du temps imparti
         const timeGivenInMilliseconds = timeGiven * 60 * 1000
         const limitDate = currentDate + timeGivenInMilliseconds
 
         const url = `api/generate_code?class_name=${classroomName}&js_time=${currentDate}&js_expiry=${limitDate}`
         const result = await fetch(url, {
-            method: 'GET'
+            method: 'POST',
         })
+
         if (!result.ok)
             return alert(`The code generation have failed. Error code : ${result.status}. Error message : ${await result.text()}`)
-        const _classroomCode: string = await result.text()
-        sessionStorage.save(_classroomCode, `${limitDate}`)
-        setClassroomCode(parseInt(_classroomCode))
 
-        setDisabledButton(true);
+        const _classroomCode = await result.json() as GetCodeResponse
+        sessionStorage.clear()
+        sessionStorage.save(String(_classroomCode.code), String(limitDate))
+        setClassroomCode(_classroomCode.code)
+        setDisabledButton(true)
 
-        if (oldCodeInterval)
-            clearInterval(oldCodeInterval)
+        // Clear the old interval before setting a new one
+        if (oldCodeIntervalRef.current) {
+            clearInterval(oldCodeIntervalRef.current)
+        }
 
-        setInterval(async () => {
+        // Set the new interval
+        oldCodeIntervalRef.current = setInterval(() => {
             setTimer(calculateTimer(limitDate))
-        }, 1000);
+        }, 1000)
     }
 
     function getMostRecentCode(): number {
-        let values = Object.entries(sessionStorage.loadAll());
-        let max_JS_time = 0;
-        let code_to_recover = 0;
+        let values = Object.entries(sessionStorage.loadAll())
+        let max_JS_time = 0
+        let code_to_recover = 0
 
         for (let item of values) {
-            let JS_time = Number(item[1]);
+            let JS_time = Number(item[1])
 
             if (JS_time > max_JS_time)
-                max_JS_time = JS_time;
+                max_JS_time = JS_time
         }
 
         for (let item of values) {
-            let code = Number(item[0]);
-            let JS_time = Number(item[1]);
+            let code = Number(item[0])
+            let JS_time = Number(item[1])
 
             if (JS_time == max_JS_time) {
-                code_to_recover = code;
+                code_to_recover = code
             }
         }
 
-        return code_to_recover;
+        return code_to_recover
     }
 
     useEffect(() => {
@@ -108,11 +116,17 @@ export default function teacher() {
             return
 
         const code = getMostRecentCode()
-        const limitDate = parseInt(sessionStorage.load(`${code}`) as any)
+        const limitDate = parseInt(sessionStorage.load(String(code)) as any)
         setClassroomCode(code)
         setCodeButtonText('Generate a new code')
 
-        oldCodeInterval = setInterval(async () => {
+        // Clear the old interval before setting a new one
+        if (oldCodeIntervalRef.current) {
+            clearInterval(oldCodeIntervalRef.current)
+        }
+
+        // Set the new interval
+        oldCodeIntervalRef.current = setInterval(() => {
             setTimer(calculateTimer(limitDate))
         }, 1000)
     }, [])
@@ -132,8 +146,8 @@ export default function teacher() {
                         value={classroomName}
                         minLength={classroomNameProps.minLength}
                         maxLength={classroomNameProps.maxLength}
-                        onKeyDown={event => replaceSpacesNumbers(event as any)}
-                        onChange={event => setClassroomName(event.target.value)}
+                        onKeyDown={(event) => replaceSpacesNumbers(event as any)}
+                        onChange={(event) => setClassroomName(event.target.value)}
                     />
                     <br />
                     <label htmlFor="classroom-name">Your class name can only contain letters. No numbers, spaces or special chars.</label>
@@ -147,14 +161,12 @@ export default function teacher() {
                         max={timeGivenProps.max}
                         value={timeGiven}
                         id="time-given"
-                        onKeyPress={event => onlyInt(event as any)}
-                        onKeyUp={event => checkMinMax((event.target as any).value, timeGivenProps.min, timeGivenProps.max, setTimeGiven)}
-                        onChange={event => setTimeGiven(parseInt(event.target.value))}
+                        onKeyPress={(event) => onlyInt(event as any)}
+                        onKeyUp={(event) => checkMinMax((event.target as any).value, timeGivenProps.min, timeGivenProps.max, setTimeGiven)}
+                        onChange={(event) => setTimeGiven(parseInt(event.target.value))}
                     />
                     <label htmlFor="time-given">Between 2 min <br />& 180 min.</label>
                 </div>
-
-
             </div>
 
             <button onClick={getCode} id="get-code-btn" className="submit-btn" disabled={disabledButton}>{codeButtonText}</button>
@@ -163,7 +175,7 @@ export default function teacher() {
             <h2 id="timer">{timer}</h2>
             <ul id="attendants"></ul>
 
-            <Link href="https://simple-plow-ae8.notion.site/Terms-Conditions-3cc6c864b8d54ad0a8b3cbf4f2e358f0" id="terms-and-conditions" className="gray absolute-top-right">T&Cs</Link>
+            <TCs />
         </>
     )
 }
