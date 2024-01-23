@@ -62,7 +62,7 @@ export default function Student() {
         <main>
             <h1 className="no-margin-bottom">Prove your attendance</h1>
             <h2>Please enter the code you received below :</h2>
-            <form className="student-form" onSubmit={event => handleForm(event)} >
+            <form className="student-form" onSubmit={handleForm} >
                 <input
                     type="text"
                     placeholder="Your name"
