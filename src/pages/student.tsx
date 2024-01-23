@@ -26,7 +26,9 @@ export default function Student() {
         setLoaderVisibility(true)
 
         const url = `api/process_attendance?code=${classroomCode}&name=${name}`
-        const result = await fetch(url)
+        const result = await fetch(url, {
+            method: 'POST'
+        })
 
         if (!result.ok)
             return alert(`There have been an issue while submitting your attendance. Error code : ${result.status}. Message : ${await result.text()}`)
