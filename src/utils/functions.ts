@@ -1,19 +1,19 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextApiRequest, NextApiResponse } from "next"
 import { Dispatch, SetStateAction } from "react"
-import { IpQualityScoreResponse } from "./interfaces";
-import * as crypto from 'crypto';
+import { IpQualityScoreResponse } from "./interfaces"
+import * as crypto from 'crypto'
 
 export function redirect(url:string):void {
-    window.location.href = url;
+    window.location.href = url
 }
 
 export function hasNumber(myString:string):boolean {
-    return /\d/.test(myString);
+    return /\d/.test(myString)
 }
 
 export function onlyInt(event: KeyboardEvent): void {
     if (event.which != 8 && event.which != 0 && event.which < 48 || event.which > 57) {
-        event.preventDefault();
+        event.preventDefault()
     }
 }
 
@@ -54,9 +54,9 @@ export function isIpv6(ip: string): boolean{
 }
 
 export function casualHash(input: string): string {
-    const hash = crypto.createHash('ripemd160');
-    hash.update(input);
-    return hash.digest('hex');
+    const hash = crypto.createHash('ripemd160')
+    hash.update(input)
+    return hash.digest('hex')
 }
 
 export function isVpnFromIpInfo(ipQualityInfo: IpQualityScoreResponse) {

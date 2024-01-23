@@ -1,8 +1,8 @@
-import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { sessionStorage } from "@/utils/storage"
 import { onlyInt, checkMinMax, calculateTimer } from "@/utils/functions"
 import TCs from "@/components/TCs"
+import supabase from "@/db/supabaseClient"
 
 interface GetCodeResponse {
     code: number
@@ -24,6 +24,7 @@ export default function Teacher() {
     const [timer, setTimer] = useState("")
     const [codeButtonText, setCodeButtonText] = useState('Generate code')
     const [disabledButton, setDisabledButton] = useState(false)
+    const [attendances, setAttendances] = useState([])
 
     const oldCodeIntervalRef = useRef<number | NodeJS.Timeout>()
 
@@ -131,6 +132,29 @@ export default function Teacher() {
         }, 1000)
     }, [])
 
+    useEffect(() => {
+        if (classroomCode <= 0)
+            return
+
+        const channel = supabase
+            .channel('schema-db-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'attendances'
+                },
+                payload => console.log(payload)
+            )
+            .subscribe()
+
+        return () => {
+            channel.unsubscribe()
+        }
+
+    }, [classroomCode])
+
     return (
         <>
             <h1 className="no-margin-bottom">Create a room</h1>
@@ -146,8 +170,8 @@ export default function Teacher() {
                         value={classroomName}
                         minLength={classroomNameProps.minLength}
                         maxLength={classroomNameProps.maxLength}
-                        onKeyDown={(event) => replaceSpacesNumbers(event as any)}
-                        onChange={(event) => setClassroomName(event.target.value)}
+                        onKeyDown={event => replaceSpacesNumbers(event as any)}
+                        onChange={event => setClassroomName(event.target.value)}
                     />
                     <br />
                     <label htmlFor="classroom-name">Your class name can only contain letters. No numbers, spaces or special chars.</label>
@@ -161,9 +185,9 @@ export default function Teacher() {
                         max={timeGivenProps.max}
                         value={timeGiven}
                         id="time-given"
-                        onKeyPress={(event) => onlyInt(event as any)}
-                        onKeyUp={(event) => checkMinMax((event.target as any).value, timeGivenProps.min, timeGivenProps.max, setTimeGiven)}
-                        onChange={(event) => setTimeGiven(parseInt(event.target.value))}
+                        onKeyPress={event => onlyInt(event as any)}
+                        onKeyUp={event => checkMinMax((event.target as any).value, timeGivenProps.min, timeGivenProps.max, setTimeGiven)}
+                        onChange={event => setTimeGiven(parseInt(event.target.value))}
                     />
                     <label htmlFor="time-given">Between 2 min <br />& 180 min.</label>
                 </div>

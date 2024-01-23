@@ -1,8 +1,8 @@
-import TCs from '@/components/TCs';
-import { calculateTimer, checkMinMax, onlyInt } from '@/utils/functions';
-import { FormEvent, ReactElement, useState } from 'react';
-import { localStorage } from '@/utils/storage';
-import Loader from '@/components/Loader';
+import TCs from '@/components/TCs'
+import { calculateTimer, checkMinMax, onlyInt } from '@/utils/functions'
+import { FormEvent, ReactElement, useState } from 'react'
+import { localStorage } from '@/utils/storage'
+import Loader from '@/components/Loader'
 
 export default function Student() {
 
