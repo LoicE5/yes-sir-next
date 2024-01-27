@@ -1,60 +1,60 @@
 const sessionStorage = {
     save(key:string, value:string) {
-        window.sessionStorage.setItem(key, value);
+        window.sessionStorage.setItem(key, value)
     },
     load(key:string) {
-        return window.sessionStorage.getItem(key);
+        return window.sessionStorage.getItem(key)
     },
     clear() {
-        window.sessionStorage.clear();
+        window.sessionStorage.clear()
     },
     isEmpty() {
         if (window.sessionStorage.length > 0) {
-            return false;
+            return false
         } else {
-            return true;
+            return true
         }
     },
     loadAll() {
         var archive = {} as any, // Notice change here
         keys = Object.keys(window.sessionStorage),
-        i = keys.length;
+        i = keys.length
 
         while ( i-- ) {
-            archive[ keys[i] ] = window.sessionStorage.getItem( keys[i] );
+            archive[ keys[i] ] = window.sessionStorage.getItem( keys[i] )
         }
 
-        return archive;
+        return archive
     }
 }
 
 const localStorage = {
     save(key:string, value:string) {
-        window.localStorage.setItem(key, value);
+        window.localStorage.setItem(key, value)
     },
     load(key:string) {
-        return window.localStorage.getItem(key);
+        return window.localStorage.getItem(key)
     },
     clear() {
-        window.localStorage.clear();
+        window.localStorage.clear()
     },
     isEmpty() {
         if (window.localStorage.length > 0) {
-            return false;
+            return false
         } else {
-            return true;
+            return true
         }
     },
     loadAll() {
         var archive = {} as any, // Notice change here
         keys = Object.keys(window.localStorage),
-        i = keys.length;
+        i = keys.length
 
         while ( i-- ) {
-            archive[ keys[i] ] = window.localStorage.getItem( keys[i] );
+            archive[ keys[i] ] = window.localStorage.getItem( keys[i] )
         }
 
-        return archive;
+        return archive
     }
 }
 

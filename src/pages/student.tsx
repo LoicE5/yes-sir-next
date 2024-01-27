@@ -1,8 +1,8 @@
-import TCs from '@/components/TCs';
-import { calculateTimer, checkMinMax, onlyInt } from '@/utils/functions';
-import { FormEvent, ReactElement, useState } from 'react';
-import { localStorage } from '@/utils/storage';
-import Loader from '@/components/Loader';
+import TCs from '@/components/TCs'
+import { calculateTimer, checkMinMax, onlyInt } from '@/utils/functions'
+import { FormEvent, ReactElement, useState } from 'react'
+import { localStorage } from '@/utils/storage'
+import Loader from '@/components/Loader'
 
 export default function Student() {
 
@@ -16,6 +16,7 @@ export default function Student() {
     const [loaderVisibility, setLoaderVisibility] = useState(false)
     const [messageContent, setMessageContent] = useState('')
     const [timer, setTimer] = useState('')
+    const [oldCodeInterval, setOldCodeInterval] = useState<NodeJS.Timeout | number>(0)
 
     async function handleForm(event: FormEvent): Promise<void> {
         event.preventDefault()
@@ -26,10 +27,14 @@ export default function Student() {
         setLoaderVisibility(true)
 
         const url = `api/process_attendance?code=${classroomCode}&name=${name}`
-        const result = await fetch(url)
+        const result = await fetch(url, {
+            method: 'POST'
+        })
 
-        if (!result.ok)
+        if (!result.ok && result.status !== 403) {
+            setLoaderVisibility(false)
             return alert(`There have been an issue while submitting your attendance. Error code : ${result.status}. Message : ${await result.text()}`)
+        }
 
         const data = await result.json()
 
@@ -40,6 +45,7 @@ export default function Student() {
         }
 
         if (data.denied) {
+            setLoaderVisibility(false)
             if (Date.now() > data.js_expiry)
                 return setMessageContent(`You have no time left to confirm your attendance.`)
             else
@@ -51,16 +57,21 @@ export default function Student() {
 
         setLoaderVisibility(false)
 
-        setInterval(async () => {
-            setTimer(calculateTimer(data.js_expiry))
-        }, 1000)
+        if (oldCodeInterval)
+            clearInterval(oldCodeInterval)
+
+        setOldCodeInterval(
+            setInterval(() => {
+                setTimer(calculateTimer(data.js_expiry))
+            }, 1000)
+        )
     }
 
     return (
         <main>
             <h1 className="no-margin-bottom">Prove your attendance</h1>
             <h2>Please enter the code you received below :</h2>
-            <form className="student-form" onSubmit={event => handleForm(event)} >
+            <form className="student-form" onSubmit={handleForm} >
                 <input
                     type="text"
                     placeholder="Your name"

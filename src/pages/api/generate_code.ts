@@ -1,9 +1,8 @@
-import Codes from "@/db/models/codes.model";
-import { randomInt } from "@/utils/functions";
-import { BaseResponse } from "@/utils/interfaces";
-import { NextApiRequest, NextApiResponse } from "next";
-import { Model } from "sequelize";
-import validator from "validator";
+import { randomInt } from "@/utils/functions"
+import { BaseResponse } from "@/utils/interfaces"
+import { NextApiRequest, NextApiResponse } from "next"
+import validator from "validator"
+import supabase from "@/db/supabaseServer"
 
 interface Query {
     class_name: string,
@@ -13,6 +12,10 @@ interface Query {
 
 interface Response {
     code: number
+}
+
+async function checkIfCodeAlreadyExists(code: number): Promise<boolean> {
+    return (await supabase.from('codes').select('*').in('code', [code])).data!.length > 0
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Response|BaseResponse>): Promise<void> {
@@ -34,23 +37,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         if (Number.isNaN(cleanJsTime) || Number.isNaN(cleanJsExpiry))
             return res.status(400).json({message: 'Please set a correct time & expiry'})
 
-        let code:number, existingCode:Model|null
+        let code:number, existingCode:boolean
         
         do {
             code = randomInt(1, 999999)
-            existingCode = await Codes.findOne({
-                where: {
-                    code: code
-                }
-            })
+            existingCode = await checkIfCodeAlreadyExists(code)
         } while(existingCode)
 
-        await Codes.create({
+        const {data, error} = await supabase.from('codes').insert([{
             code: code,
             class_name: cleanClassName,
             js_time: cleanJsTime,
             js_expiry: cleanJsExpiry
-        })
+        }])
+
+        if (error)
+            return res.status(500).json({message: 'There have been an error processing your request.'})
 
         res.status(201).json({code: code} as Response)
 

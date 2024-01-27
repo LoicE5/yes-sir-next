@@ -1,7 +1,7 @@
-import Attendances from "@/db/models/attendances.model"
-import Codes from "@/db/models/codes.model"
+import supabase from "@/db/supabaseServer"
 import { casualHash, fetchIpQualityInfo, isIpv6, isVpnFromIpInfo } from "@/utils/functions"
 import { BaseResponse, IpQualityScoreResponse } from "@/utils/interfaces"
+import { PostgrestError } from "@supabase/supabase-js"
 import { NextApiRequest, NextApiResponse } from "next"
 import validator from "validator"
 
@@ -29,14 +29,17 @@ interface DbCodesModel {
     js_expiry: number
 }
 
-async function isIpAlreadyRegistered(ip: string, code: number): Promise<boolean>{
-    const result = await Attendances.findAll({
-        where: {
-            ip: ip,
-            code: code
-        }
-    })
-    return result.length > 0
+async function isIpAlreadyRegistered(ip: string, code: number): Promise<boolean> {
+    const { data, error } = await supabase
+        .from('attendances')
+        .select('*')
+        .in('ip', [ip])
+        .in('code', [code])
+    
+    if (error)
+        throw error
+
+    return data.length > 0
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Response|BaseResponse>): Promise<void> {
@@ -53,14 +56,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         const cleanCode = parseInt(validator.escape(code))
         const cleanName = validator.escape(name)
 
-        const existingCode = await Codes.findOne({
-            where: {
-                code: cleanCode
-            }
-        }) as unknown as DbCodesModel
-
-
-        if (!existingCode)
+        const { data: existingCodeList, error:ecError } = await supabase
+            .from('codes')
+            .select('code, js_expiry')
+            .in('code', [cleanCode])
+            .limit(1) as unknown as { data: DbCodesModel[], error: PostgrestError | null }
+        
+        const existingCode = existingCodeList[0]
+                
+        if (ecError || !existingCode)
             return res.status(404).json({
                 empty: true,
                 denied: false,
@@ -79,8 +83,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         const _isVpn = isVpnFromIpInfo(ipInfo)
     
         if (
-            (_isIpv6 && _isIpAlreadyRegistered)
-            || (
+            (_isIpv6 && _isIpAlreadyRegistered) ||
+            (
                 existingCode.js_expiry > 0 && 
                 Date.now() > existingCode.js_expiry
             )
@@ -96,7 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                 js_expiry: existingCode.js_expiry
             } as Response)
     
-        await Attendances.create({
+        const { error: naError } = await supabase.from('attendances').insert({
             name: cleanName,
             code: cleanCode,
             ip: ip,
@@ -104,6 +108,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
             is_vpn: _isVpn,
             is_already_registered: _isIpAlreadyRegistered
         })
+
+        if (naError)
+            return res.status(500).json({ message: 'There have been an error processing your request.' })
 
         res.status(201).json({
             empty: false,
@@ -117,6 +124,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         } as Response)
 
     } catch (error) {
+        console.error(error)
         res.status(500).json({ message: 'There have been an error processing your request.' })
     }
 }

@@ -1,5 +1,5 @@
-import { BaseResponse } from "@/utils/interfaces";
-import { NextApiRequest, NextApiResponse } from "next";
+import { BaseResponse } from "@/utils/interfaces"
+import { NextApiRequest, NextApiResponse } from "next"
 
 interface Response {
     
