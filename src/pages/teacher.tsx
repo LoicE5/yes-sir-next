@@ -3,9 +3,20 @@ import { sessionStorage } from "@/utils/storage"
 import { onlyInt, checkMinMax, calculateTimer } from "@/utils/functions"
 import TCs from "@/components/TCs"
 import supabase from "@/db/supabaseClient"
+import React from "react"
 
 interface GetCodeResponse {
     code: number
+}
+
+interface NewAttendance {
+    code: number,
+    id: number,
+    ip: string,
+    is_already_registered: boolean,
+    is_ipv6: boolean,
+    is_vpn: boolean,
+    name: string
 }
 
 export default function Teacher() {
@@ -24,7 +35,7 @@ export default function Teacher() {
     const [timer, setTimer] = useState("")
     const [codeButtonText, setCodeButtonText] = useState('Generate code')
     const [disabledButton, setDisabledButton] = useState(false)
-    const [attendances, setAttendances] = useState([])
+    const [attendances, setAttendances] = useState([] as NewAttendance[])
 
     const oldCodeIntervalRef = useRef<number | NodeJS.Timeout>()
 
@@ -86,6 +97,8 @@ export default function Teacher() {
         oldCodeIntervalRef.current = setInterval(() => {
             setTimer(calculateTimer(limitDate))
         }, 1000)
+
+        setAttendances([])
     }
 
     function getMostRecentCode(): number {
@@ -130,6 +143,14 @@ export default function Teacher() {
         oldCodeIntervalRef.current = setInterval(() => {
             setTimer(calculateTimer(limitDate))
         }, 1000)
+
+        supabase
+            .from('attendances')
+            .select('*')
+            .eq('code', code)
+            .then(({ data, error }) => {
+                setAttendances(data as NewAttendance[])
+            })
     }, [])
 
     useEffect(() => {
@@ -137,15 +158,16 @@ export default function Teacher() {
             return
 
         const channel = supabase
-            .channel('schema-db-changes')
+            .channel('attendances_check')
             .on(
                 'postgres_changes',
                 {
                     event: 'INSERT',
                     schema: 'public',
-                    table: 'attendances'
+                    table: 'attendances',
+                    filter: `code=eq.${classroomCode}`
                 },
-                payload => console.log(payload)
+                payload => setAttendances(prev => [...prev, payload.new] as NewAttendance[])
             )
             .subscribe()
 
@@ -154,6 +176,47 @@ export default function Teacher() {
         }
 
     }, [classroomCode])
+
+    function attendantsListElements(attendances: NewAttendance[]): React.JSX.Element[] {
+
+        const getSameIpNames = (currentAttendance: NewAttendance): string[] =>
+            attendances
+                .filter(
+                    (otherAttendance) =>
+                        otherAttendance.ip === currentAttendance.ip &&
+                        otherAttendance.name !== currentAttendance.name
+                )
+                .map((otherAttendance) => otherAttendance.name)
+
+        const outputElements: React.JSX.Element[] = attendances.map(
+            (attendance: NewAttendance, index: number): React.JSX.Element => {
+                if (!attendance) return <></>
+
+                const sameIpNames = getSameIpNames(attendance)
+                const sameIpNamesString = sameIpNames.join(', ')
+
+                return (
+                    <li key={index}>
+                        {attendance.name} joined the class
+                        {attendance.is_already_registered && (
+                            <span style={{ color: 'red', fontStyle: 'italic' }}>
+                                ({attendance.name} joined this class with the same IP address than {sameIpNamesString}).
+                            </span>
+                        )}
+                        {attendance.is_vpn && (
+                            <span style={{ color: 'blue', fontStyle: 'italic' }}>
+                                {attendance.is_already_registered ? ' ' : <>&nbsp</>}
+                                ({attendance.name} joined this class using a VPN service).
+                            </span>
+                        )}
+                    </li>
+                )
+            }
+        )
+
+        return outputElements
+    }
+
 
     return (
         <>
@@ -197,7 +260,9 @@ export default function Teacher() {
 
             {classroomCode >= 0 ? (<h2 id="code-title">The code is : <span id="code">{classroomCode}</span></h2>) : ''}
             <h2 id="timer">{timer}</h2>
-            <ul id="attendants"></ul>
+            <ul id="attendants">
+                {attendantsListElements(attendances)}
+            </ul>
 
             <TCs />
         </>

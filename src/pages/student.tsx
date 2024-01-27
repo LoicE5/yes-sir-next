@@ -16,6 +16,7 @@ export default function Student() {
     const [loaderVisibility, setLoaderVisibility] = useState(false)
     const [messageContent, setMessageContent] = useState('')
     const [timer, setTimer] = useState('')
+    const [oldCodeInterval, setOldCodeInterval] = useState<NodeJS.Timeout | number>(0)
 
     async function handleForm(event: FormEvent): Promise<void> {
         event.preventDefault()
@@ -30,8 +31,10 @@ export default function Student() {
             method: 'POST'
         })
 
-        if (!result.ok)
+        if (!result.ok && result.status !== 403) {
+            setLoaderVisibility(false)
             return alert(`There have been an issue while submitting your attendance. Error code : ${result.status}. Message : ${await result.text()}`)
+        }
 
         const data = await result.json()
 
@@ -42,6 +45,7 @@ export default function Student() {
         }
 
         if (data.denied) {
+            setLoaderVisibility(false)
             if (Date.now() > data.js_expiry)
                 return setMessageContent(`You have no time left to confirm your attendance.`)
             else
@@ -53,9 +57,14 @@ export default function Student() {
 
         setLoaderVisibility(false)
 
-        setInterval(async () => {
-            setTimer(calculateTimer(data.js_expiry))
-        }, 1000)
+        if (oldCodeInterval)
+            clearInterval(oldCodeInterval)
+
+        setOldCodeInterval(
+            setInterval(() => {
+                setTimer(calculateTimer(data.js_expiry))
+            }, 1000)
+        )
     }
 
     return (
