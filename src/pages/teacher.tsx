@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { sessionStorage } from "@/utils/storage"
 import { onlyInt, checkMinMax, calculateTimer } from "@/utils/functions"
 import TCs from "@/components/TCs"
-import supabase from "@/db/supabaseClient"
+import supabaseClient from "@/db/supabaseClient"
 import React from "react"
 
 interface GetCodeResponse {
@@ -144,7 +144,7 @@ export default function Teacher() {
             setTimer(calculateTimer(limitDate))
         }, 1000)
 
-        supabase
+        supabaseClient
             .from('attendances')
             .select('*')
             .eq('code', code)
@@ -157,7 +157,7 @@ export default function Teacher() {
         if (classroomCode <= 0)
             return
 
-        const channel = supabase
+        const channel = supabaseClient
             .channel('attendances_check')
             .on(
                 'postgres_changes',

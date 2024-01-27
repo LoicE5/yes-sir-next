@@ -1,4 +1,4 @@
-import supabase from "@/db/supabaseServer"
+import supabaseApi from "@/db/supabaseServer"
 import { casualHash, fetchIpQualityInfo, isIpv6, isVpnFromIpInfo } from "@/utils/functions"
 import { BaseResponse, IpQualityScoreResponse } from "@/utils/interfaces"
 import { PostgrestError } from "@supabase/supabase-js"
@@ -30,7 +30,7 @@ interface DbCodesModel {
 }
 
 async function isIpAlreadyRegistered(ip: string, code: number): Promise<boolean> {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseApi
         .from('attendances')
         .select('*')
         .in('ip', [ip])
@@ -56,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         const cleanCode = parseInt(validator.escape(code))
         const cleanName = validator.escape(name)
 
-        const { data: existingCodeList, error:ecError } = await supabase
+        const { data: existingCodeList, error:ecError } = await supabaseApi
             .from('codes')
             .select('code, js_expiry')
             .in('code', [cleanCode])
@@ -100,7 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
                 js_expiry: existingCode.js_expiry
             } as Response)
     
-        const { error: naError } = await supabase.from('attendances').insert({
+        const { error: naError } = await supabaseApi.from('attendances').insert({
             name: cleanName,
             code: cleanCode,
             ip: ip,
