@@ -18,7 +18,7 @@ export default function Home() {
                 <Link className="homepage-button" href="teacher">I am a teacher</Link>
                 <Link className="homepage-button" href="student">I am a student</Link>
             </div>
-            <TCs />
+            <TCs color='white' />
         </main>
 
     )

@@ -103,7 +103,7 @@ export default function Student() {
             <h2 id="message-box">{messageContent}</h2>
             <h2 id="timer">{timer}</h2>
             <Loader visible={loaderVisibility} />
-            <TCs />
+            <TCs color='grey' />
         </main>
     )
 }

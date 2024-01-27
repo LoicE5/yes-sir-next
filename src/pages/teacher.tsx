@@ -264,7 +264,7 @@ export default function Teacher() {
                 {attendantsListElements(attendances)}
             </ul>
 
-            <TCs />
+            <TCs color='grey' />
         </>
     )
 }
