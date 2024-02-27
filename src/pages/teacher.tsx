@@ -206,7 +206,7 @@ export default function Teacher() {
                         )}
                         {attendance.is_vpn && (
                             <span style={{ color: 'blue', fontStyle: 'italic' }}>
-                                {attendance.is_already_registered ? ' ' : <>&nbsp</>}
+                                {attendance.is_already_registered ? ' ' : <>&nbsp;</>}
                                 ({attendance.name} joined this class using a VPN service).
                             </span>
                         )}
