@@ -40,7 +40,7 @@ export default function Teacher() {
     const oldCodeIntervalRef = useRef<number | NodeJS.Timeout>()
 
     function replaceSpacesNumbers(event: KeyboardEvent): void {
-        let key = event.keyCode
+        const key = event.keyCode
         if (!((key >= 65 && key <= 90) || key === 8)) {
             event.preventDefault()
         }
@@ -51,7 +51,8 @@ export default function Teacher() {
         minLength: number,
         maxLength: number
     ): boolean {
-        if (!str) return false
+        if (!str)
+            return false
 
         const specialCharacters = [" ", "&", "?"]
         if (specialCharacters.some((char) => str.includes(char))) return false
