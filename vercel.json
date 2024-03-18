@@ -1,0 +1,6 @@
+{
+    "crons": [{
+      "path": "/api/cronjobs/keep_db_awake",
+      "schedule": "0 4 * * 6"
+    }]
+}
