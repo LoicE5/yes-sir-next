@@ -1,6 +1,12 @@
 {
-    "crons": [{
-      "path": "/api/cronjobs/keep_db_awake",
-      "schedule": "0 4 * * 6"
-    }]
+    "crons": [
+        {
+        "path": "/api/cronjobs/keep_db_awake",
+        "schedule": "0 4 * * 6"
+        },
+        {
+            "path": "/api/cronjobs/auto_archive",
+            "schedule": "0 1 1,15 * *"
+        }
+    ]
 }
