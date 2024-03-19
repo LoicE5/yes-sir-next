@@ -28,34 +28,99 @@ const sessionStorage = {
     }
 }
 
-const localStorage = {
-    save(key:string, value:string) {
-        window.localStorage.setItem(key, value)
-    },
-    load(key:string) {
-        return window.localStorage.getItem(key)
-    },
-    clear() {
-        window.localStorage.clear()
-    },
-    isEmpty() {
-        if (window.localStorage.length > 0) {
-            return false
-        } else {
-            return true
-        }
-    },
-    loadAll() {
-        var archive = {} as any, // Notice change here
-        keys = Object.keys(window.localStorage),
-        i = keys.length
+const indexedDBStorage = {
+    db: null as IDBDatabase | null,
 
-        while ( i-- ) {
-            archive[ keys[i] ] = window.localStorage.getItem( keys[i] )
-        }
+    async initDB() {
+        return new Promise<void>((resolve, reject) => {
+            const request = window.indexedDB.open('studentDB', 1)
 
-        return archive
+            request.onerror = event => {
+                console.error("IndexedDB error:", event)
+                reject("Failed to open the database")
+            }
+
+            request.onsuccess = event => {
+                indexedDBStorage.db = (event.target as IDBOpenDBRequest).result
+                resolve()
+            }
+
+            request.onupgradeneeded = event => {
+                const db = (event.target as IDBOpenDBRequest).result
+                db.createObjectStore('data')
+            }
+        })
+    },
+
+    async save(key: string|number, value: any) {
+        if (!indexedDBStorage.db)
+            await indexedDBStorage.initDB()
+        
+        const transaction = indexedDBStorage.db!.transaction('data', 'readwrite')
+        const objectStore = transaction.objectStore('data')
+        objectStore.put(value, key)
+    },
+
+    async load(key: string|number) {
+        if (!indexedDBStorage.db)
+            await indexedDBStorage.initDB()
+        
+        const transaction = indexedDBStorage.db!.transaction('data', 'readonly')
+        const objectStore = transaction.objectStore('data')
+        const request = objectStore.get(key)
+        
+        return new Promise<string | undefined>((resolve, reject) => {
+            request.onsuccess = event => {
+                const data = (event.target as IDBRequest).result
+                resolve(data ? data.value : undefined)
+            }
+
+            request.onerror = event => {
+                console.error("Error loading data from IndexedDB:", event)
+                reject("Failed to load data from IndexedDB")
+            }
+        })
+    },
+
+    async clear() {
+        if (!indexedDBStorage.db)
+            await indexedDBStorage.initDB()
+        
+        const transaction = indexedDBStorage.db!.transaction('data', 'readwrite')
+        const objectStore = transaction.objectStore('data')
+        objectStore.clear()
+    },
+
+    async isEmpty() {
+        const data = await indexedDBStorage.loadAll()
+        return Object.keys(data).length === 0
+    },
+
+    async loadAll() {
+        if (!indexedDBStorage.db)
+            await indexedDBStorage.initDB()
+        
+        const transaction = indexedDBStorage.db!.transaction('data', 'readonly')
+        const objectStore = transaction.objectStore('data')
+        const request = objectStore.getAll()
+
+        return new Promise<{ [key: string]: string }>((resolve, reject) => {
+            request.onsuccess = event => {
+                const data = (event.target as IDBRequest).result
+                const archive: { [key: string]: string } = {}
+                for (const item of data) {
+                    archive[item.key] = item.value
+                }
+                resolve(archive)
+            }
+
+            request.onerror = event => {
+                console.error("Error loading all data from IndexedDB:", event)
+                reject("Failed to load all data from IndexedDB")
+            }
+
+        })
     }
 }
 
-export {sessionStorage, localStorage}
+export {sessionStorage, indexedDBStorage}
