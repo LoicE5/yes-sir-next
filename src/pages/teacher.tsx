@@ -6,7 +6,9 @@ import supabaseClient from "@/db/supabaseClient"
 import React from "react"
 
 interface GetCodeResponse {
-    code: number
+    code: number,
+    js_time: number,
+    js_expiry: number
 }
 
 interface NewAttendance {
@@ -70,12 +72,7 @@ export default function Teacher() {
         if (!isValidString(classroomName, classroomNameProps.minLength, classroomNameProps.maxLength))
             return console.error(`The given classroom name is not valid. String is : ${classroomName}.`)
 
-        const date = new Date()
-        const currentDate = date.getTime()
-        const timeGivenInMilliseconds = timeGiven * 60 * 1000
-        const limitDate = currentDate + timeGivenInMilliseconds
-
-        const url = `api/generate_code?class_name=${classroomName}&js_time=${currentDate}&js_expiry=${limitDate}`
+        const url = `api/generate_code?class_name=${classroomName}&time_given=${timeGiven}`
         const result = await fetch(url, {
             method: 'POST',
         })
@@ -83,10 +80,10 @@ export default function Teacher() {
         if (!result.ok)
             return alert(`The code generation have failed. Error code : ${result.status}. Error message : ${await result.text()}`)
 
-        const _classroomCode = await result.json() as GetCodeResponse
+        const classRoomInfo = await result.json() as GetCodeResponse
         sessionStorage.clear()
-        sessionStorage.save(String(_classroomCode.code), String(limitDate))
-        setClassroomCode(_classroomCode.code)
+        sessionStorage.save(String(classRoomInfo.code), String(classRoomInfo.js_expiry))
+        setClassroomCode(classRoomInfo.code)
         setDisabledButton(true)
 
         // Clear the old interval before setting a new one
@@ -96,7 +93,7 @@ export default function Teacher() {
 
         // Set the new interval
         oldCodeIntervalRef.current = setInterval(() => {
-            setTimer(calculateTimer(limitDate))
+            setTimer(calculateTimer(classRoomInfo.js_expiry))
         }, 1000)
 
         setAttendances([])

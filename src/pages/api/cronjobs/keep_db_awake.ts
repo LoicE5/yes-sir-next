@@ -10,5 +10,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     const message = error ? `Keep DB awake : the cron job ran successfully, but the database returned an error` : `Keep DB awake : cron job successful`
 
-    return res.status(204).json({ message: message })
+    return res.json({ message: message })
 }
