@@ -1,7 +1,7 @@
 import TCs from '@/components/TCs'
 import { calculateTimer, checkMinMax, onlyInt } from '@/utils/functions'
 import { FormEvent, ReactElement, useState } from 'react'
-import { localStorage } from '@/utils/storage'
+import { indexedDBStorage } from '@/utils/storage'
 import Loader from '@/components/Loader'
 
 export default function Student() {
@@ -21,7 +21,7 @@ export default function Student() {
     async function handleForm(event: FormEvent): Promise<void> {
         event.preventDefault()
 
-        if (localStorage.load(`${classroomCode}`))
+        if (await indexedDBStorage.load(classroomCode))
             return setMessageContent(`You already submitted an attendance for this code.`)
 
         setLoaderVisibility(true)
@@ -53,7 +53,7 @@ export default function Student() {
         }
 
         setMessageContent(`Thanks ${name}, you have been registered successfully.`)
-        localStorage.save(`${classroomCode}`, 'true')
+        await indexedDBStorage.save(classroomCode, true)
 
         setLoaderVisibility(false)
 
