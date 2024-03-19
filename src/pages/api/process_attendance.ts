@@ -56,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         const cleanCode = parseInt(validator.escape(code))
         const cleanName = validator.escape(name)
 
-        const { data: existingCodeList, error:ecError } = await supabaseApi
+        const { data: existingCodeList, error: ecError } = await supabaseApi
             .from('codes')
             .select('code, js_expiry')
             .in('code', [cleanCode])

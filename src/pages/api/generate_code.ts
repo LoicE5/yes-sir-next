@@ -6,16 +6,24 @@ import supabaseApi from "@/db/supabaseServer"
 
 interface Query {
     class_name: string,
-    js_time: string,
-    js_expiry: string
+    time_given: string
 }
 
 interface Response {
-    code: number
+    code: number,
+    js_time: number,
+    js_expiry: number
 }
 
 async function checkIfCodeAlreadyExists(code: number): Promise<boolean> {
     return (await supabaseApi.from('codes').select('*').in('code', [code])).data!.length > 0
+}
+
+function getJsTimeAndExpiry(timeGiven: number): number[] {
+    const jsTime = Date.now()
+    const timeGivenInMilliseconds = timeGiven * 60 * 1000
+    const jsExpiry = jsTime + timeGivenInMilliseconds
+    return [jsTime, jsExpiry]
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Response|BaseResponse>): Promise<void> {
@@ -25,36 +33,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     try {
 
-        const { class_name, js_time, js_expiry } = req.query as unknown as Query
+        const { class_name, time_given } = req.query as unknown as Query
         
-        if (!class_name || !js_time)
-            return res.status(400).json({ message: 'Please set a class_name and a js_time in your request' })
+        if (!class_name)
+            return res.status(400).json({ message: 'Please set a class_name in your request' })
         
         const cleanClassName = validator.escape(class_name)
-        const cleanJsTime = parseInt(validator.escape(js_time))
-        const cleanJsExpiry = js_expiry ? parseInt(validator.escape(js_expiry)) : 0
+        const cleanTimeGiven = parseInt(validator.escape(time_given))
 
-        if (Number.isNaN(cleanJsTime) || Number.isNaN(cleanJsExpiry))
-            return res.status(400).json({message: 'Please set a correct time & expiry'})
+        if (Number.isNaN(cleanTimeGiven))
+            return res.status(400).json({message: 'Please set a correct time given'})
 
         let code:number, existingCode:boolean
         
         do {
             code = randomInt(1, 999999)
             existingCode = await checkIfCodeAlreadyExists(code)
-        } while(existingCode)
+        } while (existingCode)
+        
+        const [jsTime, jsExpiry] = getJsTimeAndExpiry(cleanTimeGiven)
 
-        const {data, error} = await supabaseApi.from('codes').insert([{
+        const { error } = await supabaseApi.from('codes').insert([{
             code: code,
             class_name: cleanClassName,
-            js_time: cleanJsTime,
-            js_expiry: cleanJsExpiry
+            js_time: jsTime,
+            js_expiry: jsExpiry
         }])
 
         if (error)
             return res.status(500).json({message: 'There have been an error processing your request.'})
 
-        res.status(201).json({code: code} as Response)
+        res.status(201).json({
+            code: code,
+            js_time: jsTime,
+            js_expiry: jsExpiry
+        } as Response)
 
     } catch (error) {
         res.status(500).json({message: 'There have been an error processing your request.'})
