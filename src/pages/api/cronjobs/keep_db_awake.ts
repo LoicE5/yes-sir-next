@@ -6,7 +6,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`)
         return res.status(401).json({ message: 'Unauthorized' })
 
-    const { error } = await supabaseApi.from('codes').select('*').limit(1)
+    const { error } = await supabaseApi.from('codes_history').select('code').limit(1)
     
     if (error)
         return res.status(500).json({message: `Keep DB awake : the cron job ran successfully, but the database returned an error`})
