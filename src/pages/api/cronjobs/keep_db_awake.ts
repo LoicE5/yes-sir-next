@@ -22,20 +22,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(401).json({ message: 'Unauthorized' })
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey)
+    if (!supabaseUrl || !supabaseServiceKey)
         return res.status(500).json({ message: 'Keep DB awake: missing environment variables' })
 
-    const anonClient = createClient(supabaseUrl, supabaseAnonKey)
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey)
 
     const now = new Date().toISOString()
 
-    const [anonRead, anonWrite, serviceRead, serviceWrite] = (await Promise.allSettled([
-        anonClient.from(TABLE).select('id').limit(1),
-        anonClient.from(TABLE).insert({ pinged_at: now, key_type: 'anon' }),
+    const [serviceRead, serviceWrite] = (await Promise.allSettled([
         serviceClient.from(TABLE).select('id').limit(1),
         serviceClient.from(TABLE).insert({ pinged_at: now, key_type: 'service_role' }),
     ])) as DatabaseOperation[]
@@ -47,8 +43,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader('Cache-Control', 'no-store, must-revalidate')
 
     const results = {
-        anon_read:     opStatus(anonRead),
-        anon_write:    opStatus(anonWrite),
         service_read:  opStatus(serviceRead),
         service_write: opStatus(serviceWrite),
     }
@@ -57,8 +51,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!allOk) {
         const errors = {
-            anon_read:     opErrorMsg(anonRead),
-            anon_write:    opErrorMsg(anonWrite),
             service_read:  opErrorMsg(serviceRead),
             service_write: opErrorMsg(serviceWrite),
         }
